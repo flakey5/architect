@@ -1,0 +1,6 @@
+TemplateVariables:
+  asd:
+    Description: hello world
+  dsa:
+    Description: hello world
+    DefaultValue: nice default value
