@@ -9,5 +9,6 @@ namespace architect.template
     internal class ArchitectManifest
     {
         public Dictionary<string, TemplateVariable> TemplateVariables { get; set; } = new Dictionary<string, TemplateVariable>();
+        public List<Job>? PostCreationJobs { get; set; }
     }
 }

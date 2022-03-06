@@ -155,7 +155,9 @@ namespace architect
 
             foreach (KeyValuePair<string, string> templateFile in templateFiles)
             {
-                string newPath = Path.Join(outputDirectory, templateFile.Key).Replace(".template", "");
+                string newPath = Path.Join(outputDirectory, templateFile.Key).Replace(templateDirectory + @"\", "").Replace(".template", "");
+
+                Directory.CreateDirectory(Path.GetDirectoryName(newPath)!);
 
                 var contentTemplate = Handlebars.Compile(templateFile.Value);
                 string renderedContent = contentTemplate(filledVariables);
@@ -163,19 +165,28 @@ namespace architect
                 File.WriteAllText(newPath, renderedContent);
             }
 
-            // Init a git repository now
-            Process process = new Process
+            InitGitRepository(outputDirectory);
+
+            if (manifest.PostCreationJobs != null)
             {
-                StartInfo =
+                manifest.PostCreationJobs.ForEach(job =>
                 {
-                    FileName = "cmd.exe",
-                    Arguments = "/C git init",
-                    RedirectStandardOutput = false,
-                    WorkingDirectory = TemplateDirectory
-                }
-            };
-            process.Start();
-            process.WaitForExit();
+                    Console.WriteLine($"Running job {job.Name}");
+
+                    Process process = new Process
+                    {
+                        StartInfo =
+                        {
+                            FileName = "cmd.exe",
+                            Arguments = $"/C {job.Command}",
+                            RedirectStandardOutput = false,
+                            WorkingDirectory = outputDirectory
+                        }
+                    };
+                    process.Start();
+                    process.WaitForExit();
+                });
+            }
 
             Console.WriteLine("Finished!");
         }
@@ -184,22 +195,40 @@ namespace architect
         {
             Dictionary<string, string> files = new Dictionary<string, string>();
 
-            foreach (string file in Directory.GetFiles(directory))
-            {   
-                FileAttributes attributes = File.GetAttributes(file);
-                if (attributes.HasFlag(FileAttributes.Directory))
-                {
-                    FindTemplateFiles(file).ToList().ForEach(x => files.Add(x.Key, x.Value));
+            foreach (string childDirectory in Directory.GetDirectories(directory))
+            {
+                if (childDirectory.EndsWith(".git"))
                     continue;
-                }
 
-                string relativePath = file.Replace(directory, "");
+                FindTemplateFiles(childDirectory).ToList().ForEach(x => files.Add(x.Key, x.Value));
+            }
+
+            foreach (string file in Directory.GetFiles(directory))
+            {
+                if (!Path.GetExtension(file).Equals(".template"))
+                    continue;
+
                 string content = File.ReadAllText(file);
-                if (Path.GetExtension(file).Equals(".template"))
-                    files.Add(relativePath, content);
+                files.Add(file, content);
             }
 
             return files;
+        }
+
+        private static void InitGitRepository(string directory)
+        {
+            Process process = new Process
+            {
+                StartInfo =
+                {
+                    FileName = "cmd.exe",
+                    Arguments = "/C git init",
+                    RedirectStandardOutput = false,
+                    WorkingDirectory = directory
+                }
+            };
+            process.Start();
+            process.WaitForExit();
         }
     }
 }
