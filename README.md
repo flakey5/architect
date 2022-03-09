@@ -14,5 +14,8 @@ A simple & lightweight project templating system
     * In these files you are capable of accessing all variables you defined in your Architect Manifest.
  * Commit to a Git repository and you're done!
 
+## Compiling
+Architect is a .NET 6 console application. Just open the solution (located in `src/`) and build just like you normally would in Visual Studio 2022.
+
 ## TODO
  * Make Git commands cross platform / replace created processes with a library
